@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="{{ get_locale() }}" dir="{{ 'rtl' if get_locale() == 'fa' else 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - {{ _('Smart Shopper') }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.7">
+    {% block head_style %}{% endblock %}
+</head>
+<body class="{{ current_user.theme if current_user.is_authenticated else 'light' }}">
+    <header>
+        <div class="navbar-fixed">
+            <nav>
+                <div class="nav-wrapper">
+                    <div class="container">
+                        <a href="{{ url_for('index') }}" class="brand-logo">{{ _('Smart Shopper') }}</a>
+                        <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+                        <ul class="right hide-on-med-and-down">
+                            {% if current_user.is_authenticated %}
+                                <li><a href="{{ url_for('index') }}">{{ _('Shopping Lists') }}</a></li>
+                                <li><a href="{{ url_for('dang_index') }}">{{ _('Cost Sharing') }}</a></li>
+                                <!-- <<< تغییر جدید: افزودن لینک علاقه‌مندی‌ها >>> -->
+                                <li><a href="{{ url_for('favorites') }}">{{ _('Favorites') }}</a></li>
+                                <li><a href="{{ url_for('profile') }}">{{ _('Profile') }}</a></li>
+                                <li><a href="{{ url_for('logout') }}">{{ _('Logout') }}</a></li>
+                            {% else %}
+                                <li><a href="{{ url_for('login') }}">{{ _('Login') }}</a></li>
+                                <li><a href="{{ url_for('register') }}">{{ _('Register') }}</a></li>
+                            {% endif %}
+                            <li><a href="{{ url_for('change_language', lang=other_lang.code) }}" class="tooltipped" data-position="bottom" data-tooltip="{{ _('Switch to') }} {{ other_lang.name }}"><i class="material-icons">language</i></a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <ul class="sidenav" id="mobile-nav">
+             {% if current_user.is_authenticated %}
+                 <li><a href="{{ url_for('index') }}"><i class="material-icons">shopping_cart</i>{{ _('Shopping Lists') }}</a></li>
+                 <li><a href="{{ url_for('dang_index') }}"><i class="material-icons">group</i>{{ _('Cost Sharing') }}</a></li>
+                 <!-- <<< تغییر جدید: افزودن لینک علاقه‌مندی‌ها >>> -->
+                 <li><a href="{{ url_for('favorites') }}"><i class="material-icons">star</i>{{ _('Favorites') }}</a></li>
+                 <li><a href="{{ url_for('profile') }}"><i class="material-icons">person</i>{{ _('Profile') }}</a></li>
+                 <li><div class="divider"></div></li>
+                 <li><a href="{{ url_for('logout') }}"><i class="material-icons">exit_to_app</i>{{ _('Logout') }}</a></li>
+             {% else %}
+                 <li><a href="{{ url_for('login') }}"><i class="material-icons">login</i>{{ _('Login') }}</a></li>
+                 <li><a href="{{ url_for('register') }}"><i class="material-icons">person_add</i>{{ _('Register') }}</a></li>
+             {% endif %}
+             <li><div class="divider"></div></li>
+             <li><a href="{{ url_for('change_language', lang=other_lang.code) }}"><i class="material-icons">language</i>{{ _('Switch to') }} {{ other_lang.name }}</a></li>
+        </ul>
+    </header>
+    <main>
+        <div class="container" style="padding-top: 20px;">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="card-panel flash-message {{ 'green lighten-4 green-text text-darken-4' if category == 'success' else 'red lighten-4 red-text text-darken-4' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    <footer class="page-footer">
+        <div class="container"><div class="row"><div class="col l6 s12"><h5 class="white-text">{{ _('Smart Shopper') }}</h5><p class="grey-text text-lighten-4">{{ _('Your smart assistant for shopping and cost sharing!') }}</p></div></div></div>
+        <div class="footer-copyright"><div class="container">© 2025 Smart Shopper Project</div></div>
+    </footer>
+    {% if current_user.is_authenticated %}
+    <div class="fixed-action-btn">
+        {% if current_user.theme == 'dark' or current_user.theme == 'ocean' %}<a href="{{ url_for('change_theme', theme_name='light') }}" class="btn-floating btn-large yellow darken-1 tooltipped" data-position="left" data-tooltip="{{ _('Switch to Light Mode') }}"><i class="material-icons">wb_sunny</i></a>
+        {% else %}<a href="{{ url_for('change_theme', theme_name='dark') }}" class="btn-floating btn-large blue-grey darken-3 tooltipped" data-position="left" data-tooltip="{{ _('Switch to Dark Mode') }}"><i class="material-icons">brightness_3</i></a>{% endif %}
+    </div>
+    {% endif %}
+    <div id="confirm-modal" class="modal"><div class="modal-content"><h4 id="modal-title">{{ _('Confirm Action') }}</h4><p id="modal-text">{{ _('Are you sure you want to proceed?') }}</p></div><div class="modal-footer"><a href="#!" class="modal-close waves-effect waves-green btn-flat">{{ _('Cancel') }}</a><a href="#!" id="modal-confirm-button" class="waves-effect waves-red btn red">{{ _('Confirm') }}</a></div></div>
+    <div id="edit-item-modal" class="modal modal-fixed-footer"><form id="edit-item-form" method="POST"><div class="modal-content"><h4>{{ _('Edit Item') }}</h4><div class="row"><div class="input-field col s12"><input id="edit-content" name="content" type="text" class="validate" required><label for="edit-content">{{ _('Item Name') }}</label></div><div class="input-field col s6"><input id="edit-quantity" name="quantity" type="number" min="1" required><label for="edit-quantity">{{ _('Quantity') }}</label></div><div class="input-field col s6"><input id="edit-unit" name="unit" type="text"><label for="edit-unit">{{ _('Unit') }}</label></div><div class="input-field col s12"><input id="edit-price" name="price" type="number" step="0.01" min="0"><label for="edit-price">{{ _('Price') }}</label></div><div class="input-field col s12"><textarea id="edit-notes" name="notes" class="materialize-textarea"></textarea><label for="edit-notes">{{ _('Notes') }}</label></div></div></div><div class="modal-footer"><a href="#!" class="modal-close waves-effect waves-grey btn-flat">{{ _('Cancel') }}</a><button type="submit" class="btn waves-effect waves-green">{{ _('Save Changes') }}</button></div></form></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modalConfirmButton = document.getElementById('modal-confirm-button');
+            const modalOptions = { onCloseEnd: function() { modalConfirmButton.onclick = null; } };
+            M.AutoInit();
+            M.Modal.init(document.querySelectorAll('.modal'), modalOptions);
+            document.body.addEventListener('click', function(event) {
+                const triggerButton = event.target.closest('.confirm-action');
+                if (triggerButton) {
+                    event.preventDefault();
+                    const title = triggerButton.dataset.title || "{{ _('Confirm Action') }}";
+                    const text = triggerButton.dataset.text || "{{ _('Are you sure?') }}";
+                    const url = triggerButton.dataset.url;
+                    const confirmModal = document.getElementById('confirm-modal');
+                    confirmModal.querySelector('#modal-title').textContent = title;
+                    confirmModal.querySelector('#modal-text').textContent = text;
+                    modalConfirmButton.onclick = function() { window.location.href = url; };
+                    const instance = M.Modal.getInstance(confirmModal);
+                    instance.open();
+                }
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

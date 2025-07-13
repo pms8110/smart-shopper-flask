@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}{{ current_event.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h4>{{ current_event.name }}</h4>
+        <p class="grey-text">{{ _('Event created by:') }} {{ current_event.owner.username }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel">
+            <span class="card-title">{{ _('Export Report') }}</span>
+            <p>{{ _('Download a summary of this event.') }}</p>
+            <a href="{{ url_for('export_dang_report', event_id=current_event.id, report_format='pdf') }}" class="btn waves-effect waves-light red"><i class="material-icons left">picture_as_pdf</i>{{ _('Export as PDF') }}</a>
+            <a href="{{ url_for('export_dang_report', event_id=current_event.id, report_format='txt') }}" class="btn waves-effect waves-light grey darken-1"><i class="material-icons left">description</i>{{ _('Export as TXT') }}</a>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- <<< بخش جدید: نمایش سیستم پرداخت هوشمند >>> -->
+<!-- ================================================================== -->
+
+<!-- ۱. پیشنهادات تسویه حساب -->
+{% if settlements %}
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel teal lighten-5">
+            <h5 class="teal-text text-darken-4"><i class="material-icons left">transform</i>{{ _('Smart Settlement Plan') }}</h5>
+            <p>{{ _('To settle all debts, follow these simple steps:') }}</p>
+            <ul class="collection">
+                {% for transaction in settlements %}
+                <li class="collection-item">
+                    <div>
+                        <span class="red-text text-darken-1"><strong>{{ transaction.from }}</strong></span>
+                        {{ _('should pay') }}
+                        <span class="green-text text-darken-2"><strong>{{ '{:,.0f}'.format(transaction.amount) }}</strong></span>
+                        {{ _('to') }}
+                        <span class="blue-text text-darken-1"><strong>{{ transaction.to }}</strong></span>
+                        
+                        {% if current_user.username == transaction.from %}
+                        <div class="secondary-content">
+                            <form action="{{ url_for('declare_payment_new') }}" method="POST">
+                                <input type="hidden" name="event_id" value="{{ current_event.id }}">
+                                <input type="hidden" name="payer_id" value="{{ transaction.from_id }}">
+                                <input type="hidden" name="recipient_id" value="{{ transaction.to_id }}">
+                                <input type="hidden" name="amount" value="{{ transaction.amount }}">
+                                <button type="submit" class="btn-small waves-effect waves-light">{{ _('I Paid') }}</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ۲. پرداخت‌های در انتظار تأیید -->
+{% if pending_payments %}
+<div class="row">
+    <div class="col s12">
+        <ul class="collection with-header">
+            <li class="collection-header orange lighten-4"><h5><i class="material-icons left">hourglass_top</i>{{ _('Pending Confirmations') }}</h5></li>
+            {% for payment in pending_payments %}
+            <li class="collection-item">
+                <div>
+                    <i class="material-icons left">person</i>
+                    <strong>{{ payment.payer.username }}</strong> {{ _('claims they paid') }} <strong>{{ '{:,.0f}'.format(payment.amount) }}</strong> {{ _('to') }} <strong>{{ payment.recipient.username }}</strong>.
+                    
+                    {% if current_user.id == payment.recipient_id %}
+                    <div class="secondary-content">
+                        <form action="{{ url_for('confirm_payment', payment_id=payment.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn-floating waves-effect waves-light green tooltipped" data-tooltip="{{ _('Confirm Receipt') }}"><i class="material-icons">check</i></button>
+                        </form>
+                        <form action="{{ url_for('reject_payment', payment_id=payment.id) }}" method="POST" style="display: inline; margin: 0 5px;">
+                            <button type="submit" class="btn-floating waves-effect waves-light red tooltipped" data-tooltip="{{ _('Reject') }}"><i class="material-icons">close</i></button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+<!-- ۳. تاریخچه پرداخت‌های نهایی شده -->
+{% if approved_payments %}
+<div class="row">
+    <div class="col s12">
+        <ul class="collection with-header">
+            <li class="collection-header green lighten-4"><h5><i class="material-icons left">history</i>{{ _('Settlement History') }}</h5></li>
+            {% for payment in approved_payments %}
+            <li class="collection-item">
+                <i class="material-icons left green-text">check_circle</i>
+                {{ _('Confirmed:') }} <strong>{{ payment.payer.username }}</strong> {{ _('paid') }} <strong>{{ '{:,.0f}'.format(payment.amount) }}</strong> {{ _('to') }} <strong>{{ payment.recipient.username }}</strong>.
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+
+<div class="row">
+    <div class="col s12 m6">
+        <ul class="collection with-header">
+            <li class="collection-header"><h5>{{ _('Balances') }}</h5></li>
+            {% for username, data in balances.items() %}
+                <li class="collection-item">
+                    <div>
+                        <strong>{{ username }}</strong>
+                        <span class="secondary-content {% if data.balance >= 0 %}green-text{% else %}red-text{% endif %}">
+                            {{ '{:,.0f}'.format(data.balance) }}
+                        </span>
+                        <br>
+                        <span class="grey-text">{{ _('Paid:') }} {{ '{:,.0f}'.format(data.paid) }} / {{ _('Share:') }} {{ '{:,.0f}'.format(data.share) }}</span>
+                    </div>
+                </li>
+            {% endfor %}
+            <li class="collection-item active">
+                <strong>{{ _('Total Expense:') }} {{ '{:,.0f}'.format(total_expense) }}</strong>
+            </li>
+        </ul>
+    </div>
+
+    <div class="col s12 m6">
+        <div class="card-panel">
+            <form action="{{ url_for('add_expense', event_id=current_event.id) }}" method="POST">
+                <h5>{{ _('Add New Expense') }}</h5>
+                <div class="input-field">
+                    <input id="description" name="description" type="text" required>
+                    <label for="description">{{ _('Description (e.g., Dinner, Taxi)') }}</label>
+                </div>
+                <div class="input-field">
+                    <input id="amount" name="amount" type="number" required>
+                    <label for="amount">{{ _('Amount') }}</label>
+                </div>
+                <button type="submit" class="btn waves-effect waves-light">{{ _('Add Expense') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <h5>{{ _('All Expenses') }}</h5>
+        <ul class="collection">
+            {% for expense in current_event.expenses %}
+                <li class="collection-item">
+                    {{ expense.description }} ({{ '{:,.0f}'.format(expense.amount) }}) - {{ _('Paid by') }} {{ expense.payer.username }}
+                    {% if expense.payer == current_user or is_owner %}
+                        <a href="{{ url_for('delete_expense', expense_id=expense.id) }}" class="secondary-content"><i class="material-icons red-text">delete</i></a>
+                    {% endif %}
+                </li>
+            {% else %}
+                <li class="collection-item">{{ _('No expenses added yet.') }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% if is_owner %}
+<div class="row">
+    <div class="col s12">
+        <a href="{{ url_for('manage_dang_participants', event_id=current_event.id) }}" class="btn waves-effect waves-light">{{ _('Manage Participants') }}</a>
+        <a href="#" class="btn red waves-effect waves-light confirm-action" data-url="{{ url_for('delete_dang_event', event_id=current_event.id) }}" data-title="{{ _('Delete Event') }}" data-text="{{ _('Are you sure you want to delete this event?') }}">{{ _('Delete Event') }}</a>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

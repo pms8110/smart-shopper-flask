@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Manage Participants') }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h4>{{ _('Manage Participants for: "%(event_name)s"', event_name=current_event.name) }}</h4>
+    </div>
+</div>
+
+<!-- ================================================================== -->
+<!-- <<< تغییر جدید: افزودن بخش اشتراک‌گذاری با QR Code >>> -->
+<!-- ================================================================== -->
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel">
+            <h5><i class="material-icons left">qr_code_scanner</i>{{ _('Invite with QR Code') }}</h5>
+            <p>{{ _('Ask your friends to scan this QR code with their phone camera to instantly join this event.') }}</p>
+            <a class="waves-effect waves-light btn modal-trigger" href="#qr-code-modal">{{ _('Show QR Code') }}</a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal برای نمایش QR Code -->
+<div id="qr-code-modal" class="modal">
+    <div class="modal-content center-align">
+        <h4>{{ _('Scan to Join "%(event_name)s"', event_name=current_event.name) }}</h4>
+        <img src="{{ url_for('generate_qr', share_type='dang', obj_id=current_event.id) }}" alt="{{ _('QR Code for sharing event') }}" width="250" height="250">
+        <p class="grey-text">{{ _('This code is valid for 1 hour.') }}</p>
+    </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat">{{ _('Close') }}</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel">
+            <h5>{{ _('Add Participant by Username') }}</h5>
+            <form method="POST">
+                <div class="input-field">
+                    <input id="username" name="username" type="text" required>
+                    <label for="username">{{ _('Enter username') }}</label>
+                </div>
+                <button type="submit" class="btn waves-effect waves-light">{{ _('Add Participant') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <h5>{{ _('Current Participants') }}</h5>
+        <ul class="collection">
+            {% for user in current_event.participants %}
+                <li class="collection-item">
+                    <div>{{ user.username }}
+                        {% if user == current_event.owner %}
+                            <span class="chip">{{ _('Owner') }}</span>
+                        {% else %}
+                            <!-- در آینده می‌توان قابلیت حذف را اضافه کرد -->
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

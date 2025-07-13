@@ -1,0 +1,31 @@
+<!-- ================================== -->
+<!--      templates/register.html     -->
+<!-- ================================== -->
+{% extends "base.html" %}
+{% block title %}{{ _('Register') }}{% endblock %}
+{% block content %}
+<div class="row" style="margin-top: 40px;">
+    <div class="col s12 m6 offset-m3">
+        <div class="card-panel">
+            <h4 class="center-align">{{ _('Create a New Account') }}</h4>
+            <form method="POST">
+                <div class="input-field">
+                    <i class="material-icons prefix">account_circle</i>
+                    <input id="username" name="username" type="text" class="validate" required>
+                    <label for="username">{{ _('Username') }}</label>
+                </div>
+                <div class="input-field">
+                    <i class="material-icons prefix">lock</i>
+                    <input id="password" name="password" type="password" class="validate" required>
+                    <label for="password">{{ _('Password') }}</label>
+                    <span class="helper-text">{{ _('Password must be at least 8 characters long and contain uppercase, lowercase, and numbers.') }}</span>
+                </div>
+                <div class="input-field center-align">
+                    <button class="btn waves-effect waves-light btn-large" type="submit">{{ _('Register') }}</button>
+                </div>
+            </form>
+            <p class="center-align">{{ _('Already have an account?') }} <a href="{{ url_for('login') }}">{{ _('Login here') }}</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Search Results') }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h4>{{ _('Search Results for: "%(query)s"', query=query) }}</h4>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        {% if results %}
+            <ul class="collection">
+                {% for item in results %}
+                    <li class="collection-item avatar">
+                        <i class="material-icons circle {% if item.completed %}grey{% else %}blue{% endif %}">label</i>
+                        <span class="title">{{ item.content }}</span>
+                        <p>
+                            {{ _('In list:') }} <a href="{{ url_for('list_view', list_id=item.list_id) }}">{{ item.list.name }}</a>
+                            <br>
+                            <span class="grey-text">{{ _('Category:') }} {{ _(item.category) }}</span>
+                        </p>
+                        <a href="{{ url_for('list_view', list_id=item.list_id) }}" class="secondary-content"><i class="material-icons">send</i></a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="card-panel empty-state-container">
+                <i class="material-icons large grey-text text-lighten-2">search_off</i>
+                <h5>{{ _('No Results Found') }}</h5>
+                <p class="grey-text">{{ _('We couldn\'t find any items matching your search for "%(query)s".', query=query) }}</p>
+                <a href="{{ url_for('index') }}" class="btn waves-effect waves-light">{{ _('Back to Lists') }}</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

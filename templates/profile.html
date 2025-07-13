@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ _('My Profile') }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12 m8 offset-m2">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">{{ _('Profile Settings') }}</span>
+                <p>{{ _('Here you can update your profile information.') }}</p>
+                <div class="divider" style="margin: 20px 0;"></div>
+                <form method="POST">
+                    <div class="row">
+                        <div class="input-field col s12">
+                            <i class="material-icons prefix">account_circle</i>
+                            <input id="username" type="text" value="{{ user.username }}" disabled>
+                            <label for="username" class="active">{{ _('Username') }}</label>
+                        </div>
+                        <div class="input-field col s12">
+                            <i class="material-icons prefix">person_outline</i>
+                            <input id="card_holder_name" name="card_holder_name" type="text" value="{{ user.card_holder_name or '' }}">
+                            <label for="card_holder_name">{{ _('Card Holder Name') }}</label>
+                        </div>
+                        <div class="input-field col s12">
+                            <i class="material-icons prefix">credit_card</i>
+                            <input id="card_number" name="card_number" type="text" value="{{ card_number or '' }}">
+                            <label for="card_number">{{ _('Card Number') }}</label>
+                        </div>
+                        <!-- <<< بخش انتخاب تم از اینجا حذف شد >>> -->
+                    </div>
+                    <div class="card-action right-align">
+                        <button class="btn waves-effect waves-light" type="submit">{{ _('Save Changes') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

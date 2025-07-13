@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ _('My Favorites') }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h4>{{ _('My Favorite Items') }}</h4>
+        <p class="grey-text">{{ _('Here you can manage your frequently used items for quick access.') }}</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel">
+            <form method="POST">
+                <div class="row" style="margin-bottom: 0;">
+                    <div class="input-field col s12 m8">
+                        <i class="material-icons prefix">star</i>
+                        <input id="content" name="content" type="text" class="validate" required>
+                        <label for="content">{{ _('New Favorite Item') }}</label>
+                    </div>
+                    <div class="input-field col s12 m4">
+                        <button class="btn waves-effect waves-light" type="submit" name="action" style="width: 100%;">
+                            {{ _('Add to Favorites') }}
+                            <i class="material-icons right">add</i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <ul class="collection with-header">
+            <li class="collection-header"><h5>{{ _('Your Favorites') }}</h5></li>
+            {% for fav in favorites %}
+            <li class="collection-item">
+                <div>
+                    {{ fav.content }}
+                    <div class="secondary-content">
+                        <!-- <<< تغییر جدید: افزودن کلاس action-icon به لینک و دکمه >>> -->
+                        {% if shopping_lists %}
+                        <a class='dropdown-trigger btn-flat waves-effect action-icon' href='#' data-target='dropdown-{{ fav.id }}'>
+                            <i class="material-icons green-text">add_shopping_cart</i>
+                        </a>
+                        <ul id='dropdown-{{ fav.id }}' class='dropdown-content'>
+                            {% for list in shopping_lists %}
+                                <li>
+                                    <a href="#!" class="add-fav-to-list-link" data-fav-id="{{ fav.id }}" data-list-id="{{ list.id }}">{{ list.name }}</a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+
+                        <form action="{{ url_for('delete_favorite', fav_id=fav.id) }}" method="POST">
+                            <button type="submit" class="btn-flat waves-effect waves-red action-icon">
+                                <i class="material-icons red-text text-lighten-1">delete</i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </li>
+            {% else %}
+            <li class="collection-item">
+                <div class="empty-state-container small-empty-state">
+                    <i class="material-icons large grey-text text-lighten-2">star_border</i>
+                    <h6>{{ _('No favorites yet!') }}</h6>
+                    <p class="grey-text">{{ _('Use the form above to add your first favorite item, or add them from your shopping lists.') }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<form id="add-to-list-form" method="POST" action="{{ url_for('add_fav_to_list') }}" style="display: none;">
+    <input type="hidden" id="fav_id_input" name="fav_id">
+    <input type="hidden" id="list_id_input" name="list_id">
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('add-to-list-form');
+    const favIdInput = document.getElementById('fav_id_input');
+    const listIdInput = document.getElementById('list_id_input');
+
+    document.querySelector('.collection').addEventListener('click', function(e) {
+        if (e.target.classList.contains('add-fav-to-list-link')) {
+            e.preventDefault();
+            favIdInput.value = e.target.dataset.favId;
+            listIdInput.value = e.target.dataset.listId;
+            form.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

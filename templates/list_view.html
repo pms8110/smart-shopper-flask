@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}{{ current_list.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h4>{{ current_list.name }}</h4>
+        <div class="card-panel">
+            <form id="add-item-form" method="POST">
+                <div class="row" style="margin-bottom: 0;">
+                    <div class="input-field col s12 m6 l4"><i class="material-icons prefix">add_shopping_cart</i><input id="item" name="item" type="text" class="validate" required><label for="item">{{ _('New Item') }}</label></div>
+                    <div class="input-field col s6 m3 l2"><input id="quantity" name="quantity" type="number" value="1" min="1"><label for="quantity">{{ _('Quantity') }}</label></div>
+                    <div class="input-field col s6 m3 l2"><input id="unit" name="unit" type="text"><label for="unit">{{ _('Unit') }}</label></div>
+                    <div class="input-field col s12 m12 l4"><button class="btn waves-effect waves-light" type="submit" style="width: 100%;">{{ _('Add Item') }} <i class="material-icons right">add</i></button></div>
+                </div>
+            </form>
+            <!-- <<< تغییر جدید: نمایش علاقه‌مندی‌ها به صورت Chip >>> -->
+            {% if favorites %}
+            <div class="divider" style="margin: 20px 0;"></div>
+            <div class="favorites-chips">
+                <span>{{ _('Quick Add from Favorites:') }}</span>
+                {% for fav in favorites %}
+                    <div class="chip waves-effect add-from-fav" data-content="{{ fav.content }}">{{ fav.content }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col s12">
+        <div id="item-list-container">
+            {% if grouped_items %}
+                {% for category, items_in_category in grouped_items.items() %}
+                <ul class="collection with-header category-collection" id="category-{{ category|replace(' ', '-') }}">
+                    <li class="collection-header"><h5>{{ _(category) }}</h5></li>
+                    {% for item in items_in_category %}
+                        {% include '_item.html' %}
+                    {% endfor %}
+                </ul>
+                {% endfor %}
+            {% else %}
+                <ul class="collection with-header" id="item-list-placeholder"><li class="collection-item"><div class="empty-state-container small-empty-state"><i class="material-icons large grey-text text-lighten-2">inbox</i><h6>{{ _('This list is empty') }}</h6><p class="grey-text">{{ _('Use the form above to add your first item!') }}</p></div></li></ul>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col s12">
+        <a href="{{ url_for('share_list', list_id=current_list.id) }}" class="btn blue waves-effect waves-light"><i class="material-icons left">share</i>{{ _('Share List') }}</a>
+        <a href="#" class="btn orange waves-effect waves-light confirm-action" data-url="{{ url_for('clear_list', list_id=current_list.id) }}" data-title="{{ _('Clear All Items') }}" data-text="{{ _('Are you sure you want to permanently delete all items from this list? This action cannot be undone.') }}"><i class="material-icons left">delete_sweep</i>{{ _('Clear All') }}</a>
+        <a href="#" class="btn red waves-effect waves-light confirm-action" data-url="{{ url_for('delete_list', list_id=current_list.id) }}" data-title="{{ _('Delete List') }}" data-text="{{ _('Are you sure you want to permanently delete the list "%(list_name)s"? This action cannot be undone.', list_name=current_list.name) }}"><i class="material-icons left">delete_forever</i>{{ _('Delete List') }}</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemListContainer = document.getElementById('item-list-container');
+    const addItemForm = document.getElementById('add-item-form');
+    const itemInput = document.getElementById('item');
+    const unitInput = document.getElementById('unit');
+
+    // --- افزودن آیتم با AJAX ---
+    function submitAddItemForm(formData) {
+        fetch("{{ url_for('list_view', list_id=current_list.id) }}", {
+            method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(response => response.json()).then(data => {
+            if (data.success) {
+                const emptyPlaceholder = document.getElementById('item-list-placeholder');
+                if (emptyPlaceholder) emptyPlaceholder.remove();
+                const categoryId = `category-${data.category.replace(' ', '-')}`;
+                let categoryUl = document.getElementById(categoryId);
+                if (!categoryUl) {
+                    const newCategoryHtml = `<ul class="collection with-header category-collection" id="${categoryId}"><li class="collection-header"><h5>${data.category}</h5></li></ul>`;
+                    itemListContainer.insertAdjacentHTML('beforeend', newCategoryHtml);
+                    categoryUl = document.getElementById(categoryId);
+                }
+                categoryUl.insertAdjacentHTML('beforeend', data.item_html);
+                const newItemElement = categoryUl.lastElementChild;
+                newItemElement.classList.add('new-item-highlight');
+                setTimeout(() => { newItemElement.classList.remove('new-item-highlight'); }, 1500);
+                addItemForm.reset();
+                M.updateTextFields();
+                M.Tooltip.init(newItemElement.querySelectorAll('.tooltipped')); // Re-init tooltips for new item
+            }
+        }).catch(error => console.error('Error:', error));
+    }
+
+    addItemForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitAddItemForm(new FormData(addItemForm));
+    });
+
+    // <<< تغییر جدید: افزودن آیتم با کلیک روی Chip علاقه‌مندی‌ها >>>
+    document.querySelector('.favorites-chips')?.addEventListener('click', function(e) {
+        if (e.target.classList.contains('add-from-fav')) {
+            const content = e.target.dataset.content;
+            const formData = new FormData();
+            formData.append('item', content);
+            submitAddItemForm(formData);
+        }
+    });
+
+    // --- مدیریت کلیک روی آیتم‌ها ---
+    itemListContainer.addEventListener('click', function(e) {
+        // ... (کد تیک زدن، حذف و ویرایش از مرحله قبل بدون تغییر اینجا قرار می‌گیرد) ...
+        if (e.target.classList.contains('toggle-item')) {
+            const checkbox = e.target;
+            const itemId = checkbox.dataset.itemId;
+            fetch(`/toggle_item/${itemId}`, { method: 'POST' }).then(response => response.json()).then(data => {
+                if (data.success) { location.reload(); }
+            });
+        }
+        const deleteLink = e.target.closest('.delete-item');
+        if (deleteLink) {
+            e.preventDefault();
+            const itemId = deleteLink.dataset.itemId;
+            const listItem = document.getElementById(`item-${itemId}`);
+            const confirmModal = M.Modal.getInstance(document.getElementById('confirm-modal'));
+            const modalTitle = document.getElementById('modal-title');
+            const modalText = document.getElementById('modal-text');
+            const modalConfirmButton = document.getElementById('modal-confirm-button');
+            modalTitle.textContent = "{{ _('Delete Item') }}";
+            modalText.textContent = "{{ _('Are you sure you want to delete this item?') }}";
+            modalConfirmButton.onclick = function() {
+                fetch(`/delete_item/${itemId}`, { method: 'POST' }).then(response => response.json()).then(data => {
+                    if (data.success) {
+                        listItem.classList.add('removing');
+                        listItem.addEventListener('transitionend', () => {
+                            const parentUl = listItem.parentElement;
+                            listItem.remove();
+                            if (parentUl.childElementCount <= 1) { parentUl.remove(); }
+                        });
+                    }
+                });
+            };
+            confirmModal.open();
+        }
+        const editButton = e.target.closest('.edit-item-trigger');
+        if (editButton) {
+            e.preventDefault();
+            const itemId = editButton.dataset.itemId;
+            const editModalElement = document.getElementById('edit-item-modal');
+            const editModalInstance = M.Modal.getInstance(editModalElement);
+            const editForm = document.getElementById('edit-item-form');
+            fetch(`/update_item/${itemId}`).then(response => response.json()).then(data => {
+                editForm.action = `/update_item/${itemId}`;
+                editForm.querySelector('#edit-content').value = data.content;
+                editForm.querySelector('#edit-quantity').value = data.quantity;
+                editForm.querySelector('#edit-unit').value = data.unit || '';
+                editForm.querySelector('#edit-price').value = data.price || 0;
+                editForm.querySelector('#edit-notes').value = data.notes || '';
+                M.updateTextFields();
+                editModalInstance.open();
+            });
+        }
+        // <<< تغییر جدید: مدیریت کلیک روی ستاره علاقه‌مندی‌ها >>>
+        const favoriteButton = e.target.closest('.toggle-favorite-btn');
+        if (favoriteButton) {
+            e.preventDefault();
+            const itemId = favoriteButton.dataset.itemId;
+            const starIcon = favoriteButton.querySelector('.star-icon');
+            fetch(`/toggle_favorite/${itemId}`, { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    starIcon.classList.toggle('yellow-text', data.is_favorite);
+                    starIcon.classList.toggle('text-darken-2', data.is_favorite);
+                    starIcon.classList.toggle('grey-text', !data.is_favorite);
+                    starIcon.classList.toggle('text-lighten-1', !data.is_favorite);
+                    M.toast({html: data.is_favorite ? "{{ _('Added to favorites!') }}" : "{{ _('Removed from favorites.') }}", classes: 'blue'});
+                }
+            });
+        }
+    });
+
+    // --- ارسال فرم ویرایش ---
+    const editForm = document.getElementById('edit-item-form');
+    editForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(editForm);
+        fetch(editForm.action, {
+            method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(response => response.json()).then(data => {
+            if (data.success) { location.reload(); }
+        });
+    });
+    
+    // پیشنهاد واحد هوشمند (بدون تغییر)
+    itemInput.addEventListener('blur', function() {
+        const itemName = itemInput.value;
+        if (itemName) {
+            fetch(`{{ url_for('suggest_unit') }}?item_name=${encodeURIComponent(itemName)}`).then(response => response.json()).then(data => {
+                if (data.unit && !unitInput.value) {
+                    unitInput.value = data.unit;
+                    M.updateTextFields();
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

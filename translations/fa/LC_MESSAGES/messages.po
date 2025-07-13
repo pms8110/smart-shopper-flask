@@ -1,0 +1,51 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2025-07-11 20:03+0330\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: fa <LL@li.org>\n"
+"Language: fa\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: templates/edit.html:6 templates/edit.html:9
+msgid "Edit Item"
+msgstr "مورد ویرایش"
+
+#: templates/edit.html:13
+msgid "Save Changes"
+msgstr "تغییرات را ذخیره کنید"
+
+#: templates/edit.html:17
+msgid "Back to list"
+msgstr "بازگشت به لیست"
+
+#: templates/index.html:6 templates/index.html:9
+msgid "My Shopping List"
+msgstr "لیست خرید من"
+
+#: templates/index.html:12
+msgid "Item name..."
+msgstr "نام کالا..."
+
+#: templates/index.html:13
+msgid "Add"
+msgstr "افزودن"
+
+#: templates/index.html:23
+msgid "Delete"
+msgstr "حذف"
+
+#: templates/index.html:24
+msgid "Edit"
+msgstr "ویرایش کردن"
+
+#: templates/index.html:29
+msgid "Your shopping list is currently empty!"
+msgstr "لیست خرید شما در حال حاضر خالی است!"
