@@ -8,96 +8,126 @@
     </div>
 </div>
 
-<!-- ================================================================== -->
-<!-- <<< تغییر جدید: افزودن فرم جستجو >>> -->
-<!-- ================================================================== -->
 <div class="row">
     <div class="col s12">
-        <div class="card-panel" style="padding: 16px;">
-            <form action="{{ url_for('search') }}" method="GET">
-                <div class="input-field" style="margin: 0;">
-                    <i class="material-icons prefix">search</i>
-                    <input id="search_query" name="q" type="search" required>
-                    <label for="search_query">{{ _('Search in all your items...') }}</label>
-                    <i class="material-icons close">close</i>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-
-{% if not owned_lists and not shared_lists %}
-    <!-- حالت خالی: وقتی هیچ لیستی وجود ندارد -->
-    <div class="row">
-        <div class="col s12">
-            <div class="card-panel empty-state-container">
-                <i class="material-icons large grey-text text-lighten-2">shopping_basket</i>
-                <h5>{{ _('Your shopping space is ready!') }}</h5>
-                <p class="grey-text">{{ _("You haven't created any lists yet. Let's create your first one!") }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col s12 m8 offset-m2">
-            <form method="POST" class="card-panel">
+        <div class="card-panel blue-grey lighten-5">
+            <!-- <<< تغییر جدید: action فرم حذف شده است >>> -->
+            <form id="ai-form">
                 <div class="row" style="margin-bottom: 0;">
                     <div class="input-field col s12">
-                        <i class="material-icons prefix">playlist_add</i>
-                        <input id="list_name" name="list_name" type="text" class="validate" required autofocus>
-                        <label for="list_name">{{ _('Enter a name for your first list (e.g., Weekly Groceries)') }}</label>
+                        <i class="material-icons prefix">auto_awesome</i>
+                        <input id="ai_prompt" name="ai_prompt" type="text" class="validate" required>
+                        <label for="ai_prompt">{{ _('Create a list with AI... (e.g., "Taco night", "Weekly cleaning supplies")') }}</label>
                     </div>
                     <div class="input-field col s12">
-                        <button class="btn waves-effect waves-light btn-large" type="submit" name="action" style="width: 100%;">
-                            {{ _('Create List') }}
-                            <i class="material-icons right">add</i>
+                        <button class="btn waves-effect waves-light purple" type="submit" style="width: 100%;" id="ai-submit-btn">
+                            <span class="btn-text">{{ _('Generate List') }}</span>
+                            <div class="preloader-wrapper small active" style="display: none;">
+                                <div class="spinner-layer spinner-white-only">
+                                    <div class="circle-clipper left"><div class="circle"></div></div>
+                                    <div class="gap-patch"><div class="circle"></div></div>
+                                    <div class="circle-clipper right"><div class="circle"></div></div>
+                                </div>
+                            </div>
                         </button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
+</div>
 
-{% else %}
-    <!-- حالت عادی: وقتی حداقل یک لیست وجود دارد -->
-    <div class="row">
-        <div class="col s12">
-            <form method="POST">
-                <div class="input-field">
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel">
+            <form method="POST" action="{{ url_for('index') }}">
+                <div class="input-field" style="margin: 0;">
                     <i class="material-icons prefix">playlist_add</i>
                     <input id="list_name" name="list_name" type="text" class="validate" required>
-                    <label for="list_name">{{ _('Create a New List...') }}</label>
+                    <label for="list_name">{{ _('Or create a new list manually...') }}</label>
                 </div>
             </form>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="col s12 m6">
-            <ul class="collection with-header">
-                <li class="collection-header"><h5>{{ _('Owned Lists') }}</h5></li>
-                {% for list in owned_lists %}
-                <a href="{{ url_for('list_view', list_id=list.id) }}" class="collection-item waves-effect">
-                    <div>{{ list.name }}<span class="secondary-content"><i class="material-icons">chevron_right</i></span></div>
-                </a>
-                {% endfor %}
-                {% if not owned_lists %}
-                <li class="collection-item">{{ _('You have not created any lists yet.') }}</li>
-                {% endif %}
-            </ul>
-        </div>
-        <div class="col s12 m6">
-            <ul class="collection with-header">
-                <li class="collection-header"><h5>{{ _('Shared With Me') }}</h5></li>
-                {% for list in shared_lists %}
-                <a href="{{ url_for('list_view', list_id=list.id) }}" class="collection-item waves-effect">
-                    <div>{{ list.name }} <span class="grey-text">({{ _('from') }} {{ list.owner.username }})</span><span class="secondary-content"><i class="material-icons">chevron_right</i></span></div>
-                </a>
-                {% else %}
-                <li class="collection-item">{{ _('No lists have been shared with you.') }}</li>
-                {% endfor %}
-            </ul>
-        </div>
+<div class="row">
+    <div class="col s12 m6">
+        <ul class="collection with-header">
+            <li class="collection-header"><h5>{{ _('Owned Lists') }}</h5></li>
+            {% for list in owned_lists %}
+            <a href="{{ url_for('list_view', list_id=list.id) }}" class="collection-item waves-effect">
+                <div>{{ list.name }}<span class="secondary-content"><i class="material-icons">chevron_right</i></span></div>
+            </a>
+            {% else %}
+            <li class="collection-item">{{ _('You have not created any lists yet.') }}</li>
+            {% endfor %}
+        </ul>
     </div>
-{% endif %}
+    <div class="col s12 m6">
+        <ul class="collection with-header">
+            <li class="collection-header"><h5>{{ _('Shared With Me') }}</h5></li>
+            {% for list in shared_lists %}
+            <a href="{{ url_for('list_view', list_id=list.id) }}" class="collection-item waves-effect">
+                <div>{{ list.name }} <span class="grey-text">({{ _('from') }} {{ list.owner.username }})</span><span class="secondary-content"><i class="material-icons">chevron_right</i></span></div>
+            </a>
+            {% else %}
+            <li class="collection-item">{{ _('No lists have been shared with you.') }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // <<< تغییر جدید: کد جاوا اسکریپت برای ارسال درخواست به بک‌اند خودمان >>>
+    const aiForm = document.getElementById('ai-form');
+    const aiSubmitBtn = document.getElementById('ai-submit-btn');
+    const btnText = aiSubmitBtn.querySelector('.btn-text');
+    const preloader = aiSubmitBtn.querySelector('.preloader-wrapper');
+
+    aiForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // غیرفعال کردن دکمه و نمایش اسپینر لودینگ
+        aiSubmitBtn.disabled = true;
+        btnText.style.display = 'none';
+        preloader.style.display = 'inline-block';
+
+        const prompt = document.getElementById('ai_prompt').value;
+
+        fetch("{{ url_for('api_generate_ai_list') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ prompt: prompt })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // اگر موفق بود، به صفحه لیست جدید هدایت شو
+                window.location.href = data.redirect_url;
+            } else {
+                // اگر خطا داشت، پیام خطا را نمایش بده
+                M.toast({html: data.error, classes: 'red'});
+                // دکمه را دوباره فعال کن
+                aiSubmitBtn.disabled = false;
+                btnText.style.display = 'inline-block';
+                preloader.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            M.toast({html: 'A network error occurred.', classes: 'red'});
+            // دکمه را دوباره فعال کن
+            aiSubmitBtn.disabled = false;
+            btnText.style.display = 'inline-block';
+            preloader.style.display = 'none';
+        });
+    });
+});
+</script>
 {% endblock %}

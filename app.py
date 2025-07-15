@@ -11,9 +11,10 @@ from flask_migrate import Migrate
 from sqlalchemy import or_
 from fpdf import FPDF
 import io
-# <<< تغییر جدید: وارد کردن کتابخانه‌های لازم برای QR Code و توکن >>>
 import qrcode
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
+import requests
+import json
 
 # ----------------- بخش ۱: تعریف اپلیکیشن و تنظیمات -----------------
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -24,9 +25,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 LANGUAGES = {'en': 'English', 'fa': 'فارسی'}
 ENCRYPTION_KEY = b'mZt9qB_9rS7uW3xZ6yC4vA1nF0eG5jH8kLp-2vA5gHk='
 cipher_suite = Fernet(ENCRYPTION_KEY)
-
-# <<< تغییر جدید: ساخت یک Serializer برای ایجاد توکن‌های امن >>>
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+GEMINI_API_KEY = "" 
 
 def get_locale():
     if 'language' in session and session['language'] in LANGUAGES:
@@ -43,7 +43,7 @@ login_manager.login_view = 'login'
 login_manager.login_message = _('Please log in to access this page.')
 login_manager.login_message_category = 'error'
 
-# --- تمام دیکشنری‌ها و توابع کمکی شما بدون تغییر باقی می‌مانند ---
+# --- توابع کمکی ---
 UNIT_SUGGESTIONS = {
     'شیر': 'بطری', 'نوشابه': 'بطری', 'دوغ': 'بطری', 'آب': 'بطری', 'تخم مرغ': 'شانه', 'ماست': 'سطل', 'پنیر': 'بسته', 'کره': 'بسته', 'نان': 'عدد', 'چیپس': 'بسته', 'برنج': 'کیسه', 'گوشت': 'کیلوگرم', 'مرغ': 'کیلوگرم', 'پیاز': 'کیلوگرم', 'سیب زمینی': 'کیلوگرم', 'فرش': 'تخته', 'کتاب': 'جلد', 'milk': 'bottle', 'soda': 'bottle', 'egg': 'carton', 'eggs': 'carton', 'bread': 'loaf', 'cheese': 'pack', 'rice': 'bag', 'meat': 'kg',
 }
@@ -165,7 +165,7 @@ def inject_global_vars():
     return dict(get_locale=get_locale, other_lang={'code': other_lang_code, 'name': other_lang_name})
 
 # ----------------- بخش ۴: مسیرهای برنامه -----------------
-# --- روت‌های مدیریت کاربر و زبان (بدون تغییر) ---
+# --- تمام روت‌ها تا قبل از روت AI بدون تغییر هستند ---
 @app.route('/change-language/<lang>')
 def change_language(lang):
     if lang in LANGUAGES: session['language'] = lang
@@ -384,13 +384,6 @@ def update_item(item_id):
         flash(_('Item updated successfully.'), 'success')
         return redirect(url_for('list_view', list_id=item.list_id))
     return jsonify({'id': item.id, 'content': item.content, 'quantity': item.quantity, 'unit': item.unit, 'notes': item.notes, 'price': item.price})
-@app.route('/suggest_unit')
-@login_required
-def suggest_unit():
-    item_name = request.args.get('item_name', '').lower()
-    for key, unit in UNIT_SUGGESTIONS.items():
-        if key in item_name: return jsonify({'unit': unit})
-    return jsonify({'unit': ''})
 @app.route('/list/<int:list_id>/share', methods=['GET', 'POST'])
 @login_required
 def share_list(list_id):
@@ -587,42 +580,28 @@ def declare_payment_new():
         db.session.commit()
         flash(_('Your payment has been declared and is awaiting approval.'), 'success')
     return redirect(url_for('dang_event_view', event_id=event_id))
-
-# ==================================================================
-# <<< تغییر جدید: روت‌های جدید برای اشتراک‌گذاری با QR Code >>>
-# ==================================================================
 @app.route('/generate_qr/<share_type>/<int:obj_id>')
 @login_required
 def generate_qr(share_type, obj_id):
-    # اطمینان از دسترسی کاربر
     if share_type == 'list':
         obj = ShoppingList.query.filter_by(id=obj_id, user_id=current_user.id).first_or_404()
     elif share_type == 'dang':
         obj = DangEvent.query.filter_by(id=obj_id, user_id=current_user.id).first_or_404()
-    else:
-        abort(404)
-
-    # ساخت توکن امن که شامل نوع و آی‌دی است و تا ۱ ساعت معتبر است
+    else: abort(404)
     token = serializer.dumps({'type': share_type, 'id': obj_id}, salt='share-qr-code')
     join_url = url_for('join_via_link', token=token, _external=True)
-
-    # ساخت تصویر QR Code
     qr_img = qrcode.make(join_url)
     img_io = io.BytesIO()
     qr_img.save(img_io, 'PNG')
     img_io.seek(0)
-    
     return Response(img_io, mimetype='image/png')
-
 @app.route('/join/<token>')
 @login_required
 def join_via_link(token):
     try:
-        # اعتبارسنجی توکن (با محدودیت زمانی ۱ ساعت)
         data = serializer.loads(token, salt='share-qr-code', max_age=3600)
         share_type = data['type']
         obj_id = data['id']
-
         if share_type == 'list':
             obj = ShoppingList.query.get_or_404(obj_id)
             if current_user in obj.shared_with_users or current_user == obj.owner:
@@ -632,7 +611,6 @@ def join_via_link(token):
                 db.session.commit()
                 flash(_('You have successfully joined the list "%(name)s"!', name=obj.name), 'success')
             return redirect(url_for('list_view', list_id=obj_id))
-        
         elif share_type == 'dang':
             obj = DangEvent.query.get_or_404(obj_id)
             if current_user in obj.participants:
@@ -642,13 +620,63 @@ def join_via_link(token):
                 db.session.commit()
                 flash(_('You have successfully joined the event "%(name)s"!', name=obj.name), 'success')
             return redirect(url_for('dang_event_view', event_id=obj_id))
-
     except SignatureExpired:
         flash(_('The invitation link has expired.'), 'error')
     except BadTimeSignature:
         flash(_('The invitation link is invalid.'), 'error')
-    
     return redirect(url_for('index'))
+
+# ==================================================================
+# <<< تغییر جدید: روت ساخت لیست با هوش مصنوعی (با API رایگان داخلی) >>>
+# ==================================================================
+@app.route('/api/generate-ai-list', methods=['POST'])
+@login_required
+def api_generate_ai_list():
+    user_prompt = request.json.get('prompt')
+    if not user_prompt:
+        return jsonify({'success': False, 'error': 'No prompt provided.'}), 400
+
+    system_prompt = _("You are a helpful shopping list assistant. Based on the user's request: '%(prompt)s', generate a shopping list. Return the response as a single JSON object with a single key 'items' which contains an array of strings. For example, for 'pancakes', return {\"items\": [\"Flour\", \"Eggs\", \"Milk\", \"Sugar\"]}. Only return the JSON object.", prompt=user_prompt)
+    
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+    headers = {'Content-Type': 'application/json'}
+    payload = {"contents": [{"parts": [{"text": system_prompt}]}]}
+
+    try:
+        response = requests.post(api_url, headers=headers, json=payload, timeout=20)
+        response.raise_for_status()
+        
+        response_json = response.json()
+        text_content = response_json['candidates'][0]['content']['parts'][0]['text']
+        
+        match = re.search(r'\{.*\}', text_content, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON object found in the AI response.")
+        
+        items_data = json.loads(match.group())
+        items_list = items_data.get("items", [])
+
+        if not isinstance(items_list, list):
+            raise ValueError("AI did not return a list in the 'items' key.")
+
+        new_list_name = _("AI List: %(prompt)s", prompt=user_prompt)
+        new_list = ShoppingList(name=new_list_name, owner=current_user)
+        db.session.add(new_list)
+        db.session.flush()
+
+        for item_name in items_list:
+            if isinstance(item_name, str) and item_name.strip():
+                new_item = Item(content=item_name.strip(), category=find_category(item_name), list_id=new_list.id)
+                db.session.add(new_item)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'redirect_url': url_for('list_view', list_id=new_list.id)})
+
+    except requests.exceptions.RequestException as e:
+        return jsonify({'success': False, 'error': f"Could not connect to the AI service: {e}"}), 500
+    except (KeyError, IndexError, json.JSONDecodeError, ValueError) as e:
+        return jsonify({'success': False, 'error': f"The AI returned an unexpected response: {e}"}), 500
+
 
 # ----------------- بخش ۵: اجرای برنامه -----------------
 if __name__ == '__main__':
